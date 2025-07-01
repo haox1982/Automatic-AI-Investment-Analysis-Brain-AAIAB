@@ -68,8 +68,7 @@ SYMBOL_MAP = {
     "白银期货": "SI=F",
     "原油期货": "CL=F",
     "比特币": "BTC-USD",
-    "黄金ETF-GLD": "GLD",
-    "黄金ETF-IAU": "IAU",
+
     # ... 其他需要映射的symbol
 }
 

@@ -1,470 +1,355 @@
-# Backtrader 投资分析系统
+# Intelligent Investment Analysis System
 
-一个基于 Backtrader 框架的综合性投资分析和回测系统，集成宏观经济数据分析和投资大佬持仓跟踪功能。
+[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/downloads/)
+[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-12+-blue.svg)](https://www.postgresql.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Version](https://img.shields.io/badge/Version-v0.2.0-orange.svg)](https://github.com/your-username/intelligent-investment-analysis/releases)
 
-## 🚀 功能特性
+[中文文档](README_cn.md) | English
 
-### 📊 宏观经济与市场数据分析
-- **多源数据集成**: 核心数据源为 `akshare` 和 `yfinance`，覆盖A股、美股、外汇、大宗商品及主要经济指标。
-- **自动化数据流**: 通过定时任务自动完成数据获取、清洗、标准化及入库（PostgreSQL）。
-- **深度趋势分析**: 对所有资产进行多维度技术分析（MA, MACD, RSI, 布林带等），生成结构化的趋势、动量、波动率评估。
-- **可视化图表报告**: 自动为关键资产生成交互式HTML技术分析图表，并产出每日文本分析报告，便于快速掌握市场动态。
+## Overview
 
-### 💼 投资大佬风向标
-- **13F报告跟踪**: 自动获取并分析知名投资机构（如伯克希尔、桥水基金等）的季度持仓报告。
-- **持仓动态分析**: 识别投资组合中的增持、减持、新建仓和清仓行为，洞察“聪明钱”的流向。
-- **行业偏好洞察**: 分析投资大佬在不同行业间的资金配置变化，把握中长期趋势。
+An intelligent investment analysis system built with Python and PostgreSQL, focusing on macroeconomic data analysis, technical indicator calculations, and investment decision support. The system provides comprehensive market insights through automated data acquisition, multi-dimensional technical analysis, and intelligent report generation.
 
-### 🔄 回测与策略研究系统
-- **基础回测引擎**: 提供一个基于 `Backtrader` 的轻量级回测脚本 (`bt_run.py`)，用于快速验证单一策略思想。
-- **未来扩展规划**: 
-    - **多策略组合回测**: 支持将多个独立策略组合，评估整体投资组合的表现。
-    - **高级风险管理**: 引入更复杂的风险指标（如VaR、夏普比率、最大回撤等）和动态仓位管理模型。
-    - **参数优化**: 集成参数扫描和优化工具，寻找策略的最优参数组合。
-    - **可视化性能报告**: 生成更全面、更具洞察力的可视化回测报告。
+### Key Features
 
-## 📁 项目结构
+- 🔄 **Automated Data Acquisition**: Multi-source data integration (yfinance, akshare) with incremental and full updates
+- 📊 **Multi-Dimensional Technical Analysis**: 30+ technical indicators including MA, MACD, RSI, Bollinger Bands
+- 🎯 **Intelligent Scoring System**: Investment recommendations based on multi-indicator composite scoring
+- 📈 **Interactive Visualizations**: Auto-generated interactive HTML technical analysis charts
+- 🤖 **Media Sentiment Aggregation**: FinBERT-based financial news sentiment analysis
+- 📱 **Automated Scheduling**: Timed execution and notifications via n8n workflows
+- 💾 **Data Center**: PostgreSQL database for historical data and analysis results storage
+
+## System Architecture
+
+### Core Components
 
 ```
-Backtrader/
-├── Core/                          # 核心功能模块
-│   ├── DB/                        # 数据库相关
-│   │   ├── db_init.py            # 数据库初始化
-│   │   └── db_utils.py           # 数据库工具函数
-│   ├── write_macro_data.py       # 宏观数据获取与存储
-│   ├── bt_macro.py               # 宏观数据文本分析
-│   └── bt_portfolio_get.py       # 投资组合跟踪
-├── plot_html/                     # 图表和报告输出
-├── logs/                          # 日志文件
-├── data/                          # 数据存储
-├── requirements.txt               # Python依赖
-├── .env.example                   # 环境变量模板
-└── README.md                      # 项目说明
+Intelligent Investment Analysis System
+├── Data Acquisition Layer
+│   ├── bt_write_macro_data.py     # Macro data acquisition
+│   ├── bt_portfolio_get.py        # Portfolio tracking
+│   └── bt_benchmark_get.py        # Media sentiment aggregation
+├── Analysis Engine
+│   ├── bt_macro_tech_analysis.py  # Technical analysis engine
+│   ├── bt_plot_tech_analysis.py   # Chart generation engine
+│   └── bt_test_run.py             # Backtesting engine
+├── Data Center
+│   ├── PostgreSQL Database        # Historical data storage
+│   └── Core/DB/                   # Database utilities
+├── Scheduler System
+│   ├── scheduler.py               # Automated scheduling
+│   └── n8n Workflows              # Visual orchestration
+└── Output System
+    ├── plot_html/                 # HTML charts
+    ├── Text Reports               # Analysis reports
+    └── Telegram Notifications     # Real-time alerts
 ```
 
-## 🚀 使用方式
+### Technology Stack
 
-本系统通过 `scheduler.py` 实现全自动化运行，无需手动干预。调度安排如下：
+- **Data Analysis**: Python, Backtrader, Pandas, TA-Lib
+- **Data Sources**: yfinance, akshare
+- **Database**: PostgreSQL
+- **Visualization**: Plotly, HTML/CSS/JavaScript
+- **Workflow**: n8n
+- **NLP**: FinBERT, Chinese keyword analysis
+- **Notifications**: Telegram Bot
 
-- **每日宏观数据更新**:
-  - **时间**: 每天上午 10:00
-  - **执行脚本**: `Core/write_macro_data.py`
-  - **功能**: 从各大财经数据源获取最新的宏观经济数据，并存入数据库。
+## Data Coverage
 
-- **每日 10:30**: 执行 `plot_technical_analysis.py`，为关键资产（如黄金、原油、指数等）生成技术分析图表（HTML格式），并自动复制到 `n8n` 的数据目录，便于在n8n工作流中直接使用或展示。
-- **每日 10:40**: 执行 `bt_macro.py`，对数据库中的所有宏观资产进行基于文本的技术分析（例如，趋势判断、RSI状态、MACD信号、布林带位置等），并将分析结果存入数据库。同时，生成包含日期的文本分析报告文件，保存到 `plot_html` 文件夹下，便于查阅和AI进一步处理。
+### Asset Classes
 
-- **每周13F报告跟踪**:
-  - **时间**: 每周一上午 10:10
-  - **执行脚本**: `Core/bt_portfolio_get.py`
-  - **功能**: 获取并分析最新的13F报告，生成投资大佬持仓变动分析报告。
+| Category | Coverage | Data Source | Update Frequency |
+|----------|----------|-------------|------------------|
+| **Equity Indices** | Shanghai, Shenzhen, CSI300, CSI500, S&P500, NASDAQ, Dow Jones | yfinance | Daily |
+| **Foreign Exchange** | USD Index, Major currency pairs, CNY rates | yfinance | Daily |
+| **Commodities** | Gold futures, Crude oil futures, Silver futures | yfinance | Daily |
+| **Precious Metals** | Shanghai Gold (Au99.99/Au100g/Au(T+D)), China's gold reserves | akshare | Daily/Monthly |
+| **Interest Rates** | Fed rates, China LPR, SHIBOR, ECB rates | akshare | Real-time |
+| **Macro Indicators** | CPI, PPI, GDP, Money supply | akshare | Monthly/Quarterly |
+| **Digital Assets** | Bitcoin, Ethereum, Major cryptocurrencies | yfinance | Daily |
 
-所有产出的报告和图表都会被自动复制到指定的HTTP目录，以便通过Web访问。
+### Data Quality
 
-## 🛠️ 安装和配置
+- **Historical Depth**: 20+ years of historical data for core assets
+- **Data Integrity**: Automated data validation and quality checks
+- **Update Mechanism**: Incremental updates + full backups
+- **Conflict Resolution**: Smart deduplication and data override strategies
 
-### 1. 环境要求
+## Technical Analysis Features
 
-- Python 3.10
-- PostgreSQL 12+
-- Redis (可选，用于缓存)
+### Technical Indicators
 
-### 2. 安装依赖
+- **Trend Indicators**: MA(5,10,20,60), EMA, MACD, ADX
+- **Momentum Indicators**: RSI, Stochastic, Williams %R
+- **Volatility Indicators**: Bollinger Bands, ATR, Standard Deviation
+- **Volume Indicators**: OBV, Volume MA, Price-Volume Divergence
+- **Support/Resistance**: Key level identification, Breakout signals
+
+### Intelligent Scoring
+
+The system calculates comprehensive scores (0-10) based on multi-dimensional technical indicators:
+
+- **Trend Strength** (30%): Based on MA alignment and MACD
+- **Momentum Status** (25%): Based on RSI and Stochastic
+- **Volatility** (20%): Based on Bollinger Bands and ATR
+- **Volume Confirmation** (15%): Based on OBV and Volume
+- **Technical Patterns** (10%): Based on key level breakouts
+
+### Chart Features
+
+- **Interactive Candlestick Charts**: Support zoom, hover, indicator switching
+- **Multiple Timeframes**: Daily, weekly, monthly analysis
+- **Technical Indicator Overlay**: Customizable indicator combinations
+- **Key Level Annotations**: Auto-identification of support/resistance
+- **Signal Alerts**: Buy/sell signal visualization
+
+## Media Sentiment Aggregation
+
+### Supported Media Sources
+
+**English Media**:
+- Yahoo Finance, Reuters, Bloomberg, MarketWatch
+
+**Chinese Media**:
+- Sina Finance, East Money, JRJ, Securities Times
+
+### Sentiment Analysis
+
+- **English**: Professional financial sentiment analysis based on FinBERT
+- **Chinese**: Keyword and rule-based sentiment recognition
+- **Multi-Dimensional**: Aggregation by asset class and time dimension
+- **Trend Identification**: Sentiment change trends and turning point identification
+
+## Installation & Configuration
+
+### Requirements
 
 ```bash
-# 克隆项目
-git clone <repository-url>
-cd Backtrader
+# Python 3.8+
+# PostgreSQL 12+
+# Docker (optional)
+```
 
-# 安装Python依赖
+### Installation Steps
+
+1. **Clone Repository**
+```bash
+git clone https://github.com/your-username/intelligent-investment-analysis.git
+cd intelligent-investment-analysis
+```
+
+2. **Install Dependencies**
+```bash
 pip install -r requirements.txt
-
-# 安装TA-Lib (技术分析库)
-# macOS
-brew install ta-lib
-# Ubuntu/Debian
-sudo apt-get install libta-lib-dev
-# Windows: 下载预编译包
 ```
 
-### 3. 数据库配置
-
+3. **Configure Database**
 ```bash
-# 创建PostgreSQL数据库
-createdb backtrader_db
+# Create PostgreSQL database
+createdb investment_analysis
 
-# 初始化数据库表结构
-python Core/DB/db_init.py
-```
-
-### 4. 环境变量配置
-
-```bash
-# 复制环境变量模板
+# Configure environment variables
 cp .env.example .env
-
-# 编辑配置文件
-vim .env
+# Edit .env file with your database connection details
 ```
 
-必需配置项：
-- `DB_*`: 数据库连接信息
-- `SEC_API_KEY`: SEC API密钥 (获取地址: https://sec-api.io/)
-- `FRED_API_KEY`: FRED API密钥 (获取地址: https://fred.stlouisfed.org/docs/api/)
-
-
-
-## 1. 项目定位与哲学
-
-本项目旨在构建一个**长线投资决策的辅助系统**，而非一个短线交易信号发生器。我们坚信，市场的长期价值由基本面、宏观经济和行业趋势共同驱动。技术分析在此过程中的角色，是作为**验证工具**和**时机选择的参考**，帮助投资者在做出基本面判断后，寻找更优的入场和出场点，并管理市场情绪风险。
-
-系统的核心任务是：**自动化地从长周期视角分析关键资产，并为未来的AI投资助理提供结构化的数据输入和分析工具。**
-
----
-
-## 2. 系统架构 (System Architecture)
-
-为了实现模块化、可扩展和易于维护的目标，系统采用分离式架构，由多个独立的Python脚本、一个统一的数据中心和一个智能编排核心组成。
-
-### 2.1 核心组件
-
-*   **`write_macro_data.py` (宏观数据获取引擎)**
-    *   **职责**: 每日运行，负责从 `akshare` 和 `yfinance` 等数据源获取覆盖全球市场的核心宏观经济数据并存入数据库。
-    *   **数据源与覆盖**: 
-        - **`akshare`**: 主要用于获取中国市场的股票、指数、期货以及宏观经济数据。
-        - **`yfinance`**: 主要用于获取国际市场股票、指数、外汇及大宗商品数据。
-    *   **更新策略**: 智能增量更新，支持全量/增量模式，并发优化，重复数据处理。
-    *   **产出**: 标准化的 **OHLCV** (Open, High, Low, Close, Volume) 价格数据和经济指标数据，存入PostgreSQL数据库。OHLCV是金融市场标准的K线数据，包含了开盘价、最高价、最低价、收盘价和成交量，是进行技术分析和量化回测的基石。
-
-*   **`bt_macro.py` (宏观数据技术分析引擎)**
-    *   **职责**: 每日运行，从数据库读取宏观经济数据，进行多维度技术分析并生成结构化文本报告。
-    *   **技术分析功能**:
-        *   **多维度指标**: 移动平均线(SMA/EMA)、MACD、RSI、随机指标、ATR、布林带等
-        *   **趋势分析**: 短期/中期/长期趋势识别，支撑阻力位计算
-        *   **动量分析**: RSI超买超卖、MACD金叉死叉、随机指标信号
-        *   **波动率分析**: ATR波动率、布林带宽度、价格偏离度
-        *   **成交量分析**: 成交量趋势、价量配合度评估
-        *   **综合评分**: 1-10分技术评分系统，综合多项指标
-    *   **输出格式**:
-        *   **数据库存储**: 结构化JSON格式存入PostgreSQL，便于AI处理
-        *   **文本报告**: 生成包含日期的详细分析报告，保存到plot_html文件夹
-        *   **关键信息**: 当前价格、趋势状态、技术位、风险提示等
-    *   **分析覆盖**: 数据库中所有宏观资产（股指、商品、汇率、加密货币等）
-    *   **产出**: 为AI投资决策提供结构化的技术分析数据和可读性强的文本报告。
-
-*   **`bt_portfolio_get.py` (投资大佬风向标)**
-    *   **职责**: 每周运行，通过公开渠道（如13F报告API）获取指定投资大佬（如巴菲特、索罗斯等）的持仓变动。
-    http://m.safe.gov.cn/safe/2025/0206/25744.html
-    *   **产出**: 分析其投资组合的变化趋势和行业偏好。结果存入数据库。
-
-*   **`bt_benchmark_get.py` (市场观点聚合器)**
-    *   **职责**: 每周运行，从指定渠道（如主流财经媒体、研究机构）获取对市场的分析报告或核心观点摘要。
-    *   **产出**: 聚合市场主流情绪和分析。结果存入数据库。
-
-*   **`bt_run.py` (按需回测引擎)**
-    *   **职责**: 保持其核心功能，作为一个简单、强大的回测脚本。由用户通过n8n界面或Telegram指令手动触发，用于验证特定的交易策略或想法。
-    *   **产出**: 生成回测性能报告和图表。
-
-### 2.2 核心理念
-
-*   **统一数据中心 (Unified Data Hub)**
-    *   **技术选型**: 利用 n8n 环境内置的 **PostgreSQL** 数据库作为中央数据仓库。
-    *   **作用**: 所有Python脚本获取和分析的结构化数据（宏观指标、持仓数据、市场观点、图表路径等）都将被统一存储和管理。这避免了数据孤岛，为后续的综合分析和AI Agent调用提供了坚实基础。
-    *   **表结构设计**:
-        *   `macro_data_types`: 宏观数据类型定义表，包含数据频率信息
-        *   `macro_data`: 宏观数据主表，支持OHLC价格、成交量和JSON扩展字段
-        *   `macro_analysis_reports`: 宏观分析报告表，存储图表路径和回测结果
-        *   `portfolio_holdings`: 投资组合持仓表
-        *   `market_sentiments`: 市场情绪表
-    *   **数据完整性**: 通过UNIQUE约束防止重复数据，支持ON CONFLICT更新策略
-
-*   **标准化数据接口 (Standardized Data Interface)**
-    *   **规范**: 每个数据获取/分析脚本 (`bt_macro.py`, `bt_portfolio_get.py` 等) 都必须输出标准化的JSON对象。
-    *   **JSON结构示例**:
-        ```json
-        {
-          "source": "bt_macro.py",
-          "asset": "sh.000300",
-          "timestamp": "2023-10-27T12:00:00Z",
-          "summary": "沪深300周线趋势向下，市场情绪恐慌",
-          "details": {
-            "trend_status": "Below 50-week MA",
-            "rsi": 32
-           },
-          "chart_path": "/backtrader/charts/sh000300_20231027.html"
-        }
-        ```
-
-*   **主/子工作流模式 (Master/Sub-Workflow Model)**
-    *   **编排**: 在 n8n 中设计一个**主工作流**，负责定时调度（每日/每周）。
-    *   **执行**: 主工作流根据计划，触发不同的**子工作流**，每个子工作流负责执行一个具体的Python脚本。
-    *   **汇总**: 主工作流在所有子任务完成后，从PostgreSQL数据库中读取当日/当周的全部新数据，聚合成一份综合性的"投资参考"并通过Telegram发送。
-
-### 2.3 技术栈 (Tech Stack)
-
-*   **工作流编排**: n8n, scheduler.py
-*   **数据分析脚本**: Python (Backtrader, Pandas, yfinance, **akshare**, TA-Lib)
-*   **数据中心**: PostgreSQL
-*   **消息通知**: Telegram
-
-### 2.4 报告生成与访问流程
-
-1.  **分析与生成**: `bt_macro.py` 和 `plot_technical_analysis.py` 等脚本执行分析，并生成HTML图表和文本报告。
-2.  **统一存放**: 所有产出物（HTML, TXT文件）被保存到 `plot_html/` 目录中。
-3.  **自动分发**: `scheduler.py` 会将这些文件自动复制到n8n可访问的目录，或通过其他方式进行分发。
-4.  **消息通知**: n8n工作流或Telegram机器人最终将报告的访问链接或内容推送给用户。
-
----
-
-## 3. 数据获取与管理 (Data Acquisition & Management)
-
-### 3.1 数据获取方法
-
-系统提供多种数据获取方式，支持全量更新、增量更新和并发处理：
-
-#### 3.1.1 基础数据获取
+4. **Initialize Data**
 ```bash
-# 标准增量更新（推荐日常使用）
-python3 write_macro_data.py
+# First run - get full data
+python3 Core/bt_write_macro_data.py --full
 
-# 全量更新（初始化或数据修复时使用）
-python3 write_macro_data.py --full
-
-# 高并发全量更新（适用于大量数据获取）
-python3 write_macro_data.py --full --workers 5
-
-# 指定数据源更新
-python3 write_macro_data.py --source akshare
-python3 write_macro_data.py --source yfinance
+# Validate data
+python3 Core/bt_data_validator.py
 ```
 
-#### 3.1.2 数据验证与检查
-```bash
-# 检查数据完整性和质量
-python3 simple_db_check.py
+### Configuration File
 
-# 生成详细数据质量报告
-python3 comprehensive_data_check.py
+Configure the following parameters in `.env` file:
 
-# 检查数据库表结构
-python3 check_table_structure.py
+```env
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=investment_analysis
+DB_USER=your_username
+DB_PASSWORD=your_password
+
+# Telegram Configuration (optional)
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+
+# Data Source Configuration
+YFINANCE_TIMEOUT=30
+AKSHARE_TIMEOUT=30
 ```
 
-### 3.2 当前数据状态 (基于数据库实时统计)
+## Usage Guide
 
-以下表格展示了数据库中部分核心资产的数据覆盖范围，数据由 `Core/DB/db_utils.py` 中的函数动态生成，确保信息的准确性。
+### Daily Usage
 
-| Symbol | Type | Earliest Date | Latest Date | Records | Source |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| JPY=X | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| DX-Y.NYB | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| GBPCNY=X | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| GBP=X | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| EUR=X | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| CNY=X | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| CNH=X | CURRENCY | 2010-08-23 | 2024-07-12 | 3490 | yfinance |
-| AUD=X | CURRENCY | 2003-12-01 | 2024-07-12 | 5153 | yfinance |
-| GC=F | COMMODITY | 2000-08-30 | 2024-07-12 | 5999 | yfinance |
-| CL=F | COMMODITY | 2000-08-23 | 2024-07-12 | 6005 | yfinance |
-| ^IXIC | INDEX | 1971-02-05 | 2024-07-12 | 13479 | yfinance |
-| ^GSPC | INDEX | 1927-12-30 | 2024-07-12 | 24249 | yfinance |
-| ^DJI | INDEX | 1928-10-01 | 2024-07-12 | 24182 | yfinance |
-| 000300.SS | INDEX | 2005-04-08 | 2024-07-12 | 4684 | yfinance |
-
-**数据质量评估**:
-
-*   **优势**: 
-    *   核心资产（如美股指数、主流外汇、大宗商品）拥有超过20年的日线数据，为长周期分析和回测提供了坚实基础。
-    *   数据通过 `yfinance` 和 `akshare` 等可靠来源获取，准确性高。
-    *   数据结构统一，均为OHLCV格式，便于直接用于技术分析和回测。
-*   **待完善**: 
-    *   部分特定市场或经济指标的数据覆盖年限可能较短，需在使用时注意。
-    *   数据验证脚本 (`Core/data_validator.py`) 会定期进行交叉验证，以确保数据质量。
-
-### 3.3 数据维护
-
-数据的准确性和完整性至关重要。系统通过以下机制进行维护：
-
-- **增量与全量更新**: 日常通过增量模式 (`python3 write_macro_data.py`) 高效获取最新数据。在需要修复历史数据或进行数据迁移时，可使用全量模式 (`python3 write_macro_data.py --full`)。
-
-- **数据冲突处理**: 数据库层面设置了唯一性约束（基于`symbol`, `data_date`, `source`），`write_macro_data.py` 在插入数据时采用 `ON CONFLICT DO UPDATE` 策略，确保数据不重复且能以新数据覆盖旧数据。
-
-- **数据验证**: `Core/data_validator.py` 脚本（已集成到 `scheduler.py`）负责定期对不同来源的数据进行交叉验证，识别并报告潜在的数据质量问题。
-
-- **数据库备份**: 建议定期使用 `pg_dump` 工具对 PostgreSQL 数据库进行备份，以防数据丢失。
-  ```bash
-  # 示例：备份数据库
-  pg_dump -h [DB_HOST] -U [DB_USER] -d [DB_NAME] > backup_$(date +%Y%m%d).sql
-  ```
-
----
-
-## 4. 开发路线图 (Development Roadmap)
-
-### 阶段一：搭建模块化数据获取流水线
-
-1.  **初始化数据中心**: 在n8n中配置PostgreSQL连接，并设计核心数据表结构。✅ 已完成
-2.  **重构数据流水线**:
-    - **`write_macro_data.py`**: 专注于从多数据源获取宏观数据并存入数据库。✅ 已完成
-    - **`bt_macro.py`**: 升级为增强技术分析引擎，支持多维度指标分析和文本报告输出。✅ 已完成
-3.  **开发 `bt_portfolio_get.py`**: 实现投资组合跟踪功能及数据入库。✅ 已完成
-4.  **开发 `bt_benchmark_get.py`**: 实现主流媒体观点聚合功能及数据入库。✅ 已完成
-5.  **完善调度系统**: 通过 `scheduler.py` 实现全自动化定时执行，包括数据更新、技术分析和文本报告生成。✅ 已完成
-6.  **创建n8n子工作流**: 为每个Python脚本创建独立的n8n执行工作流。🔄 规划中
-
-### 阶段二：构建智能聚合与通知系统
-
-1.  **完善媒体观点聚合**: 扩展 `bt_benchmark_get.py` 功能，增加更多中英文媒体源，优化情感分析准确性。🔄 进行中
-2.  **开发n8n主工作流**: 创建主工作流，实现对子工作流的定时调度。
-3.  **设计聚合报告逻辑**: 在主工作流中，编写从数据库提取信息并生成每日/每周摘要的逻辑。
-4.  **优化Telegram通知**: 设计格式优美的Telegram消息，清晰地展示多维度分析结果。
-
-#### 2.1 媒体观点聚合功能详情
-
-**已实现功能**:
-- ✅ 基于FinBERT的英文财经新闻情感分析
-- ✅ 基于关键词的中文财经新闻情感分析
-- ✅ 支持Yahoo Finance、Reuters、Bloomberg等主流英文媒体
-- ✅ 支持新浪财经、东方财富等中文媒体
-- ✅ 多维度观点聚合（按资产类别、时间维度、观点类型）
-- ✅ 标准化输出格式，适配AI投资决策
-
-**规划中功能**:
-- 📋 增加更多国际媒体源（如FT、WSJ、CNBC）
-- 📋 优化中文NLP模型（考虑使用中文FinBERT）
-- 📋 实时新闻监控和预警机制
-- 📋 历史观点趋势分析和可视化
-
----
-
-## 5. 与QMT等交易终端集成
-
-本项目作为“大脑”和研究平台，其分析产出可以通过标准化的数据接口与QMT、Ptrade等交易执行终端（“手臂”）高效集成，实现从分析到交易的闭环。我们推荐采用文件接口的方式，因为它足够简单、稳定且易于调试。
-
-### 5.1 集成方案：通过信号文件对接
-
-1.  **创建信号生成脚本**: 新增一个 `Core/generate_qmt_signals.py` 脚本。
-    *   **职责**: 定时运行（例如，在 `bt_macro.py` 分析完成后），从PostgreSQL数据库中读取最新的技术分析结果（如综合评分、趋势状态等）。
-    *   **逻辑**: 根据预设的策略逻辑，将分析结果转换为明确的交易信号（如 `BUY`, `SELL`, `HOLD`）。例如，当某资产的综合评分首次超过8分时，生成`BUY`信号。
-    *   **输出**: 生成一个格式固定的信号文件（如 `signals.csv` 或 `signals.json`），并将其放置在QMT可以访问的共享目录中。
-
-2.  **信号文件格式示例 (`signals.csv`)**:
-    ```csv
-    asset_code,signal,timestamp,target_price,source
-    sh.000300,BUY,2025-06-24T10:50:00Z,3500.0,bt_macro_v1
-    future_AU,SELL,2025-06-24T10:50:00Z,450.5,bt_macro_v1
-    ```
-
-3.  **QMT端配置**:
-    *   在QMT中编写一个简单的策略脚本。
-    *   该脚本的唯一任务就是**定时（如每分钟）读取** `signals.csv` 文件。
-    *   当检测到新的信号时，根据文件内容执行相应的下单、撤单或仓位调整操作。
-
-### 5.2 优势
-
-*   **解耦**: 研究分析与交易执行分离，两边可以独立升级和维护，互不影响。
-*   **稳定**: 文件接口比API接口更简单，减少了网络通信的复杂性和潜在故障点。
-*   **灵活**: 你可以专注于在本系统中优化你的分析模型和策略逻辑，而将复杂的交易执行和账户管理交给专业的QMT处理。
-
----
-
-## 6. 数据与分析框架完善计划 (剩余20%)
-
-当前系统已完成约80%的数据基础和分析框架搭建，剩余的20%是迈向专业化、智能化和稳健性的关键，主要集中在以下三个领域：
-
-### 6.1 数据质量与覆盖度深化
-
--   **[ ] 实时数据纠错与清洗**: 开发更智能的数据清洗模块，自动识别并处理数据源的异常值（如价格尖峰、数据空缺），而仅仅是依赖定期全量更新。
--   **[ ] 另类数据集成**: 引入除价格和经济指标外的另类数据，如**市场情绪指数 (恐慌与贪婪指数)**、**期权隐含波动率 (VIX)**、**主要资产的资金流向数据**等，为分析提供更多维度。
--   **[ ] 解决数据延迟**: 解决当前部分数据源（如人民币汇率）的更新延迟问题，寻找或开发更高时效性的数据接口。
-
-### 6.2 分析框架与策略模型升级
-
--   **[ ] 跨资产关联分析**: 开发模块分析不同资产之间的**相关性、协整关系和领先/滞后效应**。例如，美元指数与黄金、美债收益率与科技股的动态关系分析。
--   **[ ] 建立因子库与因子模型**: 将现有技术指标（如RSI, MACD）和未来引入的基本面、另类数据标准化为“因子”，构建一个可回测、可扩展的因子库，并探索简单的多因子模型。
--   **[ ] 市场状态（Regime）识别**: 基于波动率、趋势强度等指标，开发一个能自动识别当前市场处于“牛市”、“熊市”、“震荡市”等不同状态的模块。策略可以根据不同的市场状态调整其参数或行为。
-
-### 6.3 风险管理与回测框架增强
-
--   **[ ] 投资组合级风险监控**: 当前分析主要针对单个资产，需要开发一个模块，用于计算和监控整个投资组合的**风险价值 (VaR)、最大回撤、夏普比率**等关键风险指标。
--   **[ ] 增强回测引擎**: 完善 `bt_run.py`，使其支持更复杂的场景，如**动态仓位管理、交易成本模拟、滑点模拟**，并能对一篮子资产的组合策略进行回测。
--   **[ ] 策略参数优化**: 引入参数寻优功能（如网格搜索、遗传算法），帮助找到在历史数据上表现更稳健的策略参数。
-
----
-
-## 7. 远期愿景：赋能 AI 投资助理
-
-当前架构的最终目标是服务于一个更高阶的AI Agent。当所有数据源和分析工具都实现了模块化和接口标准化后，AI Agent可以：
-
-1.  **按需调用工具**: 根据外部输入（如"分析下最近通胀数据对科技股的影响"），智能地选择调用 `bt_macro.py` 和相关分析模块。
-2.  **理解结构化数据**: 直接从PostgreSQL数据库中读取和理解我们准备好的结构化分析结果。
-3.  **形成综合判断**: 结合外部信息和内部数据，给出超越任何单一模块的、更深层次的投资洞见。
-
----
-
-## 6. 快速开始指南
-
-### 6.1 环境准备
 ```bash
-# 确保Docker环境运行正常
-docker-compose up -d
+# 1. Update data
+python3 Core/bt_write_macro_data.py
 
-# 安装Python依赖
-pip install -r requirements.txt
-```
+# 2. Generate technical analysis
+python3 Core/bt_macro_tech_analysis.py
 
-### 6.2 初始化数据
-```bash
-# 首次运行，获取全量数据
-python3 Core/write_macro_data.py --full
+# 3. Generate charts
+python3 bt_plot_tech_analysis.py --all
 
-# 检查数据质量
-# python3 Core/simple_db_check.py # (如有需要)
-```
-
-### 6.3 日常使用
-```bash
-# 每日增量更新
-python3 Core/write_macro_data.py
-
-# 生成文本分析报告并存入数据库
-python3 Core/bt_macro.py
-
-# 获取媒体观点聚合分析
-python3 bt_benchmark_get.py
-```
-
-### 6.4 媒体观点聚合功能使用
-
-#### 6.4.1 基本使用
-```bash
-# 获取最新媒体观点分析
+# 4. Get media sentiment
 python3 bt_benchmark_get.py
 
-# 指定分析天数（默认7天）
-python3 bt_benchmark_get.py --days 3
-
-# 只分析特定资产类别
-python3 bt_benchmark_get.py --assets "股票,债券"
+# 5. Automated scheduling
+python3 scheduler.py
 ```
 
-#### 6.4.2 输出说明
-媒体观点聚合功能会生成以下内容：
-- **情感分析报告**: 基于FinBERT和关键词分析的市场情感
-- **观点聚合**: 按资产类别、时间维度聚合的市场观点
-- **趋势识别**: 识别市场情感变化趋势和关键转折点
-- **风险预警**: 基于媒体观点的潜在风险提示
-- **数据库存储**: 所有分析结果自动存储到PostgreSQL数据库
+### Advanced Features
 
-#### 6.4.3 支持的媒体源
-**英文媒体**:
-- Yahoo Finance
-- Reuters Business
-- Bloomberg Markets
-- MarketWatch
+```bash
+# Concurrent data acquisition
+python3 Core/bt_write_macro_data.py --full --workers 5
 
-**中文媒体**:
-- 新浪财经
-- 东方财富
-- 金融界
-- 证券时报
+# Specific asset analysis
+python3 bt_plot_tech_analysis.py --symbols "^GSPC,GC=F"
+
+# Custom time range
+python3 bt_benchmark_get.py --days 30
+
+# Strategy backtesting
+python3 bt_test_run.py
+```
+
+### Output Files
+
+- **HTML Charts**: Interactive charts in `plot_html/` directory
+- **Analysis Reports**: `macro_technical_analysis_YYYYMMDD.txt`
+- **Portfolio Reports**: `portfolio_tracking_report_YYYYMMDD.md`
+- **Index Page**: `plot_html/index.html` unified navigation
+
+## Automated Scheduling
+
+### scheduler.py
+
+Built-in scheduler supports:
+- Weekday automatic data updates
+- Timed technical analysis generation
+- Exception handling and retry mechanisms
+- Telegram notification push
+
+### n8n Workflows
+
+Visual workflow orchestration:
+- Main workflow timed scheduling
+- Sub-workflow modular execution
+- Error handling and monitoring
+- Result aggregation and notifications
+
+## Trading System Integration
+
+### QMT Integration Solution
+
+Integration with QMT and other trading terminals through signal files:
+
+1. **Signal Generation**: `Core/generate_qmt_signals.py`
+2. **File Format**: Standardized CSV/JSON signals
+3. **Real-time Sync**: Shared directory file monitoring
+4. **Risk Control**: Signal validation and filtering
+
+### Signal File Example
+
+```csv
+asset_code,signal,timestamp,target_price,confidence,source
+sh.000300,BUY,2025-01-15T10:30:00Z,3500.0,0.85,bt_macro_v1
+GC=F,SELL,2025-01-15T10:30:00Z,2050.0,0.78,bt_macro_v1
+```
+
+## Development Roadmap
+
+### Completed Features ✅
+
+- [x] Multi-source data integration and management
+- [x] Technical analysis engine and indicator calculations
+- [x] Visualization chart generation
+- [x] Media sentiment aggregation and analysis
+- [x] Automated scheduling system
+- [x] Data quality validation
+- [x] PostgreSQL data center
+
+### In Development 🔄
+
+- [ ] Cross-asset correlation analysis
+- [ ] Market regime identification model
+- [ ] Portfolio risk management
+- [ ] Strategy parameter optimization
+- [ ] Real-time data streaming
+
+### Planned Features 📋
+
+- [ ] AI investment assistant integration
+- [ ] Alternative data source integration
+- [ ] High-frequency data support
+- [ ] Mobile application
+- [ ] Cloud deployment solution
+
+## Project Structure
+
+```
+intelligent-investment-analysis/
+├── Core/                          # Core modules
+│   ├── DB/                        # Database utilities
+│   ├── bt_write_macro_data.py     # Data acquisition
+│   ├── bt_macro_tech_analysis.py  # Technical analysis
+│   ├── bt_data_validator.py       # Data validation
+│   └── macro_config.py            # Configuration
+├── bt_plot_tech_analysis.py       # Chart generation
+├── bt_benchmark_get.py            # Media sentiment
+├── bt_portfolio_get.py            # Portfolio tracking
+├── bt_test_run.py                 # Backtesting engine
+├── scheduler.py                   # Scheduler
+├── plot_html/                     # Output directory
+├── requirements.txt               # Dependencies
+├── .env.example                   # Configuration template
+└── README.md                      # Project documentation
+```
+
+## Contributing
+
+We welcome contributions! Please follow these steps:
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Create a Pull Request
+
+### Code Standards
+
+- Follow PEP 8 Python coding standards
+- Add appropriate comments and docstrings
+- Write unit tests
+- Update relevant documentation
+
+## License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details
+
+## Contact
+
+- Project Homepage: https://github.com/your-username/intelligent-investment-analysis
+- Issue Tracker: https://github.com/your-username/intelligent-investment-analysis/issues
+- Email: your-email@example.com
+
+## Disclaimer
+
+This system is for educational and research purposes only and does not constitute investment advice. Investment involves risks, and decisions should be made carefully. Users bear the risk of using this system for investment decisions.
+
+---
+
+**Version**: v0.2.0  
+**Last Updated**: 2025-01-15  
+**Python Version**: 3.8+  
+**Database**: PostgreSQL 12+

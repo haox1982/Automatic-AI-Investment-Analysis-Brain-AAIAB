@@ -113,16 +113,13 @@ MACRO_ASSETS_CONFIG = [
     },
 
     # 利率数据
-    {'name': '美国短期利率', 'code': '^IRX', 'source': 'yfinance', 'type': 'INTEREST_RATE'},
-    {'name': '美联储基准利率', 'code': 'macro_usa_federal_funds_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False},  # 新增美联储利率
+    {'name': '美联储基准利率', 'code': 'macro_bank_usa_interest_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False, 'description': '美联储基准利率'},
+    {'name': '欧洲央行利率', 'code': 'macro_bank_euro_interest_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False, 'description': '欧洲央行基准利率'},
+    {'name': '瑞士央行利率', 'code': 'macro_bank_switzerland_interest_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False, 'description': '瑞士央行基准利率'},
+    {'name': '英国央行利率', 'code': 'macro_bank_english_interest_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False, 'description': '英国央行基准利率'},
+    {'name': '日本央行利率', 'code': 'macro_bank_japan_interest_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False, 'description': '日本央行基准利率'},
+    {'name': '俄罗斯央行利率', 'code': 'macro_bank_russia_interest_rate', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False, 'description': '俄罗斯央行基准利率'},
     {'name': '中国银行间同业拆借利率', 'code': 'macro_china_shibor', 'source': 'ak_macro', 'type': 'INTEREST_RATE', 'plot': False},  # 新增中国银行利率
-    {
-        'name': '欧洲央行利率',
-        'code': 'macro_bank_euro_interest_rate',
-        'source': 'ak_macro',
-        'type': 'INTEREST_RATE',
-        'description': '欧洲央行基准利率'
-    },
     # 注意：akshare中暂无英国央行和日本央行利率函数
     # 可考虑使用yfinance获取国债收益率作为替代指标，但需要验证代码有效性
     # {
@@ -158,25 +155,47 @@ MACRO_ASSETS_CONFIG = [
     
     # 黄金储备相关数据
     {
-        'name': '黄金ETF-GLD',
-        'code': 'GLD',
-        'source': 'yfinance',
-        'type': 'COMMODITY',
-        'description': 'SPDR Gold Shares ETF'
-    },
-    {
-        'name': '黄金ETF-IAU',
-        'code': 'IAU',
-        'source': 'yfinance',
-        'type': 'COMMODITY',
-        'description': 'iShares Gold Trust ETF'
-    },
-    {
         'name': '全球黄金ETF持仓报告',
         'code': 'macro_cons_gold',
         'source': 'ak_macro',
         'type': 'COMMODITY',
         'description': '全球黄金ETF持仓数据'
+    },
+    
+    # 黄金专项数据 - 中国外汇黄金储备
+    {
+        'name': '中国外汇黄金储备',
+        'code': 'macro_china_foreign_exchange_gold',
+        'source': 'ak_macro',
+        'type': 'GOLD_RESERVE',
+        'description': '中国央行黄金储备量数据',
+        'plot': True
+    },
+    
+    # 黄金专项数据 - 上海黄金交易所现货数据
+    {
+        'name': '上海金Au99.99',
+        'code': 'Au99.99',
+        'source': 'ak_gold_spot',
+        'type': 'COMMODITY',
+        'description': '上海黄金交易所Au99.99现货价格',
+        'plot': True
+    },
+    {
+        'name': '上海金Au100g',
+        'code': 'Au100g',
+        'source': 'ak_gold_spot',
+        'type': 'COMMODITY',
+        'description': '上海黄金交易所Au100g现货价格',
+        'plot': True
+    },
+    {
+        'name': '上海金Au(T+D)',
+        'code': 'Au(T+D)',
+        'source': 'ak_gold_spot',
+        'type': 'COMMODITY',
+        'description': '上海黄金交易所Au(T+D)延期交收价格',
+        'plot': True
     }
 ]
 
@@ -185,8 +204,12 @@ AK_MACRO_FUNCTION_MAP = {
     'macro_china_cpi_monthly': 'macro_china_cpi_monthly',
     'macro_usa_cpi_monthly': 'macro_usa_cpi_monthly', 
     'macro_china_lpr': 'macro_china_lpr',
+    'macro_bank_usa_interest_rate': 'macro_bank_usa_interest_rate',  # 美联储利率
     'macro_bank_euro_interest_rate': 'macro_bank_euro_interest_rate',  # 欧洲央行利率
-    'macro_usa_federal_funds_rate': 'macro_bank_usa_interest_rate',  # 正确的函数名
+    'macro_bank_switzerland_interest_rate': 'macro_bank_switzerland_interest_rate',  # 瑞士央行利率
+    'macro_bank_english_interest_rate': 'macro_bank_english_interest_rate',  # 英国央行利率
+    'macro_bank_japan_interest_rate': 'macro_bank_japan_interest_rate',  # 日本央行利率
+    'macro_bank_russia_interest_rate': 'macro_bank_russia_interest_rate',  # 俄罗斯央行利率
     'macro_china_shibor': 'rate_interbank',  # 银行间拆借利率
     'macro_china_ppi': 'macro_china_ppi_yearly',  # 正确的函数名
     'macro_usa_ppi': 'macro_usa_ppi',  # 需要确认是否存在
@@ -195,6 +218,7 @@ AK_MACRO_FUNCTION_MAP = {
     'macro_cons_silver': 'macro_cons_silver',  # 白银ETF持仓报告
     'macro_china_money_supply': 'macro_china_money_supply',  # 货币供应量(包含M0、M1、M2)
     'macro_cons_gold': 'macro_cons_gold',  # 全球最大黄金ETF持仓报告
+    'macro_china_foreign_exchange_gold': 'macro_china_foreign_exchange_gold',  # 中国外汇黄金储备
 }
 
 # 数据验证规则
@@ -217,5 +241,10 @@ DATA_VALIDATION_RULES = {
     'ak_macro': {
         'min_rows': 1,
         'required_numeric_columns': 1  # 至少有一个数值列
+    },
+    'ak_gold_spot': {
+        'required_columns': ['open', 'high', 'low', 'close'],
+        'min_rows': 1,
+        'date_column': 'date'
     }
 }

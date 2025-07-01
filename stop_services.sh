@@ -50,13 +50,33 @@ if [ -f "$AKSHARE_DIR/akshare_api.pid" ]; then
     echo "已清理旧的AkShare PID文件。"
 fi
 
-# 额外检查是否还有相关进程在运行
-echo "检查是否还有相关进程在运行..."
+# 强制停止所有相关进程
+echo "检查并强制停止所有相关进程..."
+SCHEDULER_PIDS=$(pgrep -f "scheduler.py")
+if [ -n "$SCHEDULER_PIDS" ]; then
+    echo "发现以下scheduler.py进程正在运行，正在强制停止:"
+    echo "$SCHEDULER_PIDS"
+    for PID in $SCHEDULER_PIDS; do
+        echo "强制停止进程 PID: $PID"
+        kill -9 $PID 2>/dev/null
+    done
+fi
+
+AKAPI_PIDS=$(pgrep -f "ak_api.py")
+if [ -n "$AKAPI_PIDS" ]; then
+    echo "发现以下ak_api.py进程正在运行，正在强制停止:"
+    echo "$AKAPI_PIDS"
+    for PID in $AKAPI_PIDS; do
+        echo "强制停止进程 PID: $PID"
+        kill -9 $PID 2>/dev/null
+    done
+fi
+
+# 最后检查是否还有进程在运行
 REMAINING_PROCESSES=$(ps aux | grep -E '(scheduler.py|ak_api.py)' | grep -v grep)
 if [ -n "$REMAINING_PROCESSES" ]; then
-    echo "发现以下相关进程仍在运行:"
+    echo "警告: 仍有以下进程无法停止:"
     echo "$REMAINING_PROCESSES"
-    echo "如需手动停止，请使用: kill <PID>"
 else
     echo "所有服务已成功停止"
 fi

@@ -54,6 +54,32 @@ mkdir -p "$AKSHARE_DIR/logs"
 
 echo "=== 启动服务 ==="
 
+# 检查是否有已运行的进程
+echo "检查是否有已运行的进程..."
+SCHEDULER_PIDS=$(pgrep -f "scheduler.py")
+if [ -n "$SCHEDULER_PIDS" ]; then
+    echo "发现以下scheduler.py进程正在运行，将先停止这些进程:"
+    echo "$SCHEDULER_PIDS"
+    for PID in $SCHEDULER_PIDS; do
+        echo "停止进程 PID: $PID"
+        kill -9 $PID 2>/dev/null
+    done
+    echo "已停止所有旧的scheduler.py进程"
+    sleep 2
+fi
+
+AKAPI_PIDS=$(pgrep -f "ak_api.py")
+if [ -n "$AKAPI_PIDS" ]; then
+    echo "发现以下ak_api.py进程正在运行，将先停止这些进程:"
+    echo "$AKAPI_PIDS"
+    for PID in $AKAPI_PIDS; do
+        echo "停止进程 PID: $PID"
+        kill -9 $PID 2>/dev/null
+    done
+    echo "已停止所有旧的ak_api.py进程"
+    sleep 2
+fi
+
 # 启动定时任务调度器（后台运行）
 echo "启动定时任务调度器..."
 cd "$BACKTRADER_DIR" || {

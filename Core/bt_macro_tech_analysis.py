@@ -2,6 +2,7 @@ import datetime
 import logging
 import os
 import sys
+import datetime
 import backtrader as bt
 import pandas as pd
 import pandas_ta as ta
@@ -445,7 +446,166 @@ def run_analysis_for_symbol(symbol, dataframe):
         logging.error(f"分析资产 {symbol} 时发生错误: {e}", exc_info=True)
         return None
 
-def save_analysis_to_file(analysis_results):
+def get_central_bank_rates_data(conn):
+    """获取央行利率数据"""
+    try:
+        # 央行利率数据的符号列表
+        central_bank_symbols = [
+            '美联储基准利率',
+            '欧洲央行利率', 
+            '瑞士央行利率',
+            '英国央行利率',
+            '日本央行利率',
+            '俄罗斯央行利率'
+        ]
+        
+        query = """
+        SELECT symbol, data_date, additional_data
+        FROM macro_data 
+        WHERE symbol IN %s 
+        AND data_date >= %s
+        ORDER BY symbol, data_date DESC
+        """
+        
+        # 获取最近1年的数据
+        start_date = datetime.date.today() - relativedelta(years=1)
+        
+        df = pd.read_sql(query, conn, params=[tuple(central_bank_symbols), start_date])
+        
+        if df.empty:
+            logging.warning("未找到央行利率数据")
+            return {}
+            
+        # 解析additional_data中的利率数据
+        rates_data = {}
+        for _, row in df.iterrows():
+            symbol = row['symbol']
+            data_date = row['data_date']
+            additional_data = row['additional_data']
+            
+            if symbol not in rates_data:
+                rates_data[symbol] = []
+                
+            # 从additional_data中提取利率值
+            if isinstance(additional_data, list) and additional_data:
+                # 取最新的一条记录
+                latest_record = additional_data[0] if isinstance(additional_data[0], dict) else additional_data[-1]
+                
+                # 尝试从不同的字段中提取利率值
+                rate_value = None
+                for key in ['利率', 'rate', '基准利率', '政策利率', '央行利率']:
+                    if key in latest_record:
+                        rate_value = latest_record[key]
+                        break
+                
+                if rate_value is not None:
+                    rates_data[symbol].append({
+                        'date': data_date,
+                        'rate': float(rate_value) if isinstance(rate_value, (int, float, str)) else None
+                    })
+        
+        # 只保留最新的数据
+        for symbol in rates_data:
+            if rates_data[symbol]:
+                rates_data[symbol] = sorted(rates_data[symbol], key=lambda x: x['date'], reverse=True)[:5]  # 保留最近5条记录
+        
+        return rates_data
+        
+    except Exception as e:
+        logging.error(f"获取央行利率数据失败: {e}")
+        return {}
+
+def analyze_central_bank_rates(rates_data):
+    """分析央行利率数据"""
+    analysis = {
+        'summary': '',
+        'details': {},
+        'trends': {},
+        'comparisons': {}
+    }
+    
+    try:
+        if not rates_data:
+            analysis['summary'] = "暂无央行利率数据"
+            return analysis
+            
+        current_rates = {}
+        rate_changes = {}
+        
+        # 分析每个央行的利率情况
+        for symbol, data_list in rates_data.items():
+            if not data_list:
+                continue
+                
+            # 获取最新利率
+            latest_data = data_list[0]
+            current_rate = latest_data['rate']
+            current_rates[symbol] = current_rate
+            
+            # 计算利率变化趋势
+            if len(data_list) >= 2:
+                previous_rate = data_list[1]['rate']
+                if previous_rate is not None and current_rate is not None:
+                    change = current_rate - previous_rate
+                    rate_changes[symbol] = {
+                        'change': change,
+                        'direction': '上升' if change > 0 else '下降' if change < 0 else '持平',
+                        'magnitude': abs(change)
+                    }
+            
+            analysis['details'][symbol] = {
+                'current_rate': f"{current_rate:.2f}%" if current_rate is not None else "N/A",
+                'last_update': latest_data['date'].strftime('%Y-%m-%d'),
+                'trend': rate_changes.get(symbol, {}).get('direction', '数据不足')
+            }
+        
+        # 生成比较分析
+        if current_rates:
+            max_rate_country = max(current_rates.items(), key=lambda x: x[1] if x[1] is not None else -999)
+            min_rate_country = min(current_rates.items(), key=lambda x: x[1] if x[1] is not None else 999)
+            
+            analysis['comparisons'] = {
+                'highest': {
+                    'country': max_rate_country[0],
+                    'rate': f"{max_rate_country[1]:.2f}%" if max_rate_country[1] is not None else "N/A"
+                },
+                'lowest': {
+                    'country': min_rate_country[0], 
+                    'rate': f"{min_rate_country[1]:.2f}%" if min_rate_country[1] is not None else "N/A"
+                }
+            }
+        
+        # 生成趋势分析
+        rising_count = sum(1 for change in rate_changes.values() if change['direction'] == '上升')
+        falling_count = sum(1 for change in rate_changes.values() if change['direction'] == '下降')
+        stable_count = sum(1 for change in rate_changes.values() if change['direction'] == '持平')
+        
+        analysis['trends'] = {
+            'rising': rising_count,
+            'falling': falling_count,
+            'stable': stable_count,
+            'overall_trend': '紧缩' if rising_count > falling_count else '宽松' if falling_count > rising_count else '稳定'
+        }
+        
+        # 生成摘要
+        summary_parts = []
+        if analysis['comparisons']:
+            summary_parts.append(f"当前利率最高: {analysis['comparisons']['highest']['country']} ({analysis['comparisons']['highest']['rate']})")
+            summary_parts.append(f"最低: {analysis['comparisons']['lowest']['country']} ({analysis['comparisons']['lowest']['rate']})")
+        
+        if analysis['trends']['overall_trend']:
+            summary_parts.append(f"整体趋势: {analysis['trends']['overall_trend']}")
+            
+        analysis['summary'] = "；".join(summary_parts)
+        
+        return analysis
+        
+    except Exception as e:
+        logging.error(f"分析央行利率数据失败: {e}")
+        analysis['summary'] = "央行利率数据分析失败"
+        return analysis
+
+def save_analysis_to_file(analysis_results, central_bank_analysis=None):
     """将分析结果保存到plot_html文件夹下的文本文件"""
     try:
         # 获取当前日期用于文件命名
@@ -466,6 +626,26 @@ def save_analysis_to_file(analysis_results):
             f.write(f"生成时间: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n")
             f.write("=" * 80 + "\n\n")
             
+            # 添加央行利率分析部分
+            if central_bank_analysis:
+                f.write("【各国央行利率分析】\n")
+                f.write("-" * 40 + "\n")
+                f.write(f"摘要: {central_bank_analysis['summary']}\n\n")
+                
+                if central_bank_analysis['details']:
+                    f.write("各国央行利率详情:\n")
+                    for country, details in central_bank_analysis['details'].items():
+                        f.write(f"  {country}: {details['current_rate']} (趋势: {details['trend']}, 更新: {details['last_update']})\n")
+                    f.write("\n")
+                
+                if central_bank_analysis['trends']:
+                    trends = central_bank_analysis['trends']
+                    f.write(f"利率变化趋势: 上升{trends['rising']}个, 下降{trends['falling']}个, 稳定{trends['stable']}个\n")
+                    f.write(f"整体趋势: {trends['overall_trend']}\n\n")
+                
+                f.write("=" * 80 + "\n\n")
+            
+            # 原有的技术分析部分
             for symbol, result in analysis_results.items():
                 f.write(f"【{symbol}】技术分析\n")
                 f.write("-" * 40 + "\n")
@@ -506,8 +686,21 @@ def main():
         return
 
     analysis_results = {}  # 存储所有分析结果
+    central_bank_analysis = None  # 存储央行利率分析结果
     
     try:
+        # 获取央行利率数据并进行分析
+        try:
+            logging.info("开始分析央行利率数据")
+            rates_data = get_central_bank_rates_data(conn)
+            if rates_data:
+                central_bank_analysis = analyze_central_bank_rates(rates_data)
+                logging.info("央行利率分析完成")
+            else:
+                logging.warning("未获取到央行利率数据")
+        except Exception as e:
+            logging.error(f"央行利率分析失败: {e}", exc_info=True)
+        
         # 获取所有有OHLC数据的资产
         cur = conn.cursor()
         cur.execute("""
@@ -530,11 +723,13 @@ def main():
             elif not df.empty:
                 logging.warning(f"资产 {symbol} 数据量不足 ({len(df)}条)，跳过分析")
         
-        # 保存所有分析结果到文件
-        if analysis_results:
-            saved_file = save_analysis_to_file(analysis_results)
+        # 保存所有分析结果到文件（包括央行利率分析）
+        if analysis_results or central_bank_analysis:
+            saved_file = save_analysis_to_file(analysis_results, central_bank_analysis)
             if saved_file:
-                logging.info(f"共分析了 {len(analysis_results)} 个资产，结果已保存")
+                total_analyzed = len(analysis_results) + (1 if central_bank_analysis else 0)
+                logging.info(f"共分析了 {len(analysis_results)} 个资产" + 
+                           ("，包含央行利率分析" if central_bank_analysis else "") + "，结果已保存")
             else:
                 logging.error("保存分析结果失败")
         else:

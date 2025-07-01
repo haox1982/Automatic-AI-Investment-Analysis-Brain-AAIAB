@@ -34,10 +34,11 @@ HTTP_BT_DIR = Path('/Volumes/ext-fx/Coding/6.Docker/8.n8n/data_folder/http/bt')
 HTTP_PORTFOLIO_DIR = Path('/Volumes/ext-fx/Coding/6.Docker/8.n8n/data_folder/http/backtrader/portfolio')
 
 # 脚本路径
-WRITE_MACRO_SCRIPT = CORE_DIR / 'write_macro_data.py'
-PLOT_ANALYSIS_SCRIPT = CORE_DIR / 'plot_technical_analysis.py'
+WRITE_DAILY_SCRIPT = CORE_DIR / 'bt_write_daily_data.py'
+WRITE_MACRO_SCRIPT = CORE_DIR / 'bt_write_macro_data.py'
+PLOT_ANALYSIS_SCRIPT = CORE_DIR / 'bt_plot_tech_analysis.py'
 PORTFOLIO_SCRIPT = CORE_DIR / 'bt_portfolio_get.py'
-DATA_VALIDATOR_SCRIPT = CORE_DIR / 'data_validator.py'
+DATA_VALIDATOR_SCRIPT = CORE_DIR / 'bt_data_validator.py'
 
 def run_script(script_path, description):
     """执行Python脚本"""
@@ -142,14 +143,21 @@ def copy_portfolio_files():
 def daily_data_update():
     """每日数据更新任务"""
     logger.info("=== 开始每日数据更新任务 ===")
-    
-    success = run_script(WRITE_MACRO_SCRIPT, "宏观数据更新")
-    if success:
-        logger.info("数据更新完成")
+
+    # 首先更新日线数据
+    success_daily = run_script(WRITE_DAILY_SCRIPT, "日线数据更新")
+    if not success_daily:
+        logger.error("日线数据更新失败")
+        #可以选择在这里停止，或者继续执行宏观数据更新
+
+    # 然后更新宏观数据
+    success_macro = run_script(WRITE_MACRO_SCRIPT, "宏观数据更新")
+    if success_macro:
+        logger.info("宏观数据更新完成")
         # 数据更新成功后立即进行验证
         daily_data_validation()
     else:
-        logger.error("数据更新失败")
+        logger.error("宏观数据更新失败")
 
 def daily_chart_generation():
     """每日图表生成任务"""
@@ -174,7 +182,7 @@ def daily_macro_analysis():
     logger.info("=== 开始每日宏观数据文本分析任务 ===")
     
     # 执行宏观数据文本分析脚本
-    success = run_script(CORE_DIR / 'bt_macro.py', "宏观数据文本分析")
+    success = run_script(CORE_DIR / 'bt_macro_tech_analysis.py', "宏观数据文本分析")
     if success:
         logger.info("=== 宏观数据文本分析完成 ===")
         logger.info("分析结果已保存到数据库和plot_html文件夹")
@@ -227,16 +235,22 @@ def main():
         return
     
     # 设置定时任务
-    schedule.every().day.at("10:10").do(daily_data_update)
-    schedule.every().day.at("10:40").do(daily_chart_generation)
-    schedule.every().day.at("10:50").do(daily_macro_analysis)
-    schedule.every().monday.at("10:20").do(weekly_portfolio_tracking)
+    # 凌晨执行
+    schedule.every().day.at("02:00").do(daily_data_update)
+    schedule.every().day.at("02:30").do(daily_chart_generation)
+    schedule.every().day.at("02:40").do(daily_macro_analysis)
+    # 中午执行
+    schedule.every().day.at("12:10").do(daily_data_update)
+    schedule.every().day.at("12:30").do(daily_chart_generation)
+    schedule.every().day.at("12:40").do(daily_macro_analysis)
+    # 每周一执行投资组合跟踪
+    schedule.every().monday.at("02:10").do(weekly_portfolio_tracking)
     
     logger.info("定时任务已设置:")
-    logger.info("- 每日10:10: 数据更新与验证")
-    logger.info("- 每日10:40: 图表生成和文件复制")
-    logger.info("- 每日10:50: 宏观数据文本分析")
-    logger.info("- 每周一10:20: 投资组合跟踪")
+    logger.info("- 每日02:00和12:10: 数据更新与验证")
+    logger.info("- 每日02:30和12:30: 图表生成和文件复制")
+    logger.info("- 每日02:40和12:40: 宏观数据文本分析")
+    logger.info("- 每周一02:10: 投资组合跟踪")
     logger.info("调度器运行中，按Ctrl+C停止...")
     
     try:

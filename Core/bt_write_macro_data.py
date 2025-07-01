@@ -261,9 +261,15 @@ class MacroDataWriter:
             if incremental and latest_date:
                 try:
                     data['date'] = pd.to_datetime(data['date'])
-                    # 确保latest_date也是pandas兼容的datetime类型
                     latest_date_pd = pd.to_datetime(latest_date)
-                    data = data[data['date'] > latest_date_pd]
+                    
+                    # 增加日志，观察过滤前的数据
+                    logger.info(f"过滤前，从akshare获取的最新数据日期: {data['date'].max()}")
+                    logger.info(f"数据库中最新日期: {latest_date_pd}")
+
+                    # 规范化日期后再比较，避免时间部分影响
+                    data = data[data['date'].dt.normalize() > latest_date_pd.normalize()]
+                    
                     if data.empty:
                         logger.info(f"没有新数据需要更新: {asset_config['name']}")
                         return True, "没有新数据", pd.DataFrame()
@@ -360,11 +366,35 @@ class MacroDataWriter:
         
         symbol = currency_mapping[base_currency]
         
-        # 使用currency_boc_sina函数获取中国银行外汇数据
-        data = ak.currency_boc_sina(symbol=symbol)
+        # 确定获取数据的时间范围
+        end_date = datetime.datetime.now()
         
-        if data is None or data.empty:
-            return False, "无法获取数据或数据为空", None
+        if incremental and latest_date:
+            # 增量模式：从最新日期后开始获取
+            start_date = latest_date + datetime.timedelta(days=1)
+            logger.info(f"增量模式获取{symbol}数据: 从{start_date.strftime('%Y%m%d')}到{end_date.strftime('%Y%m%d')}")
+        else:
+            # 全量模式或首次获取：获取最近3年数据
+            start_date = end_date - relativedelta(years=DEFAULT_DATA_YEARS)
+            logger.info(f"全量模式获取{symbol}数据: 从{start_date.strftime('%Y%m%d')}到{end_date.strftime('%Y%m%d')}")
+        
+        try:
+            # 使用currency_boc_sina函数获取中国银行外汇数据，需要指定日期范围
+            data = ak.currency_boc_sina(
+                symbol=symbol, 
+                start_date=start_date.strftime('%Y%m%d'), 
+                end_date=end_date.strftime('%Y%m%d')
+            )
+            
+            if data is None or data.empty:
+                logger.warning(f"currency_boc_sina返回空数据: {symbol}")
+                return False, "无法获取数据或数据为空", None
+            
+            logger.info(f"成功获取{symbol}数据，行数: {len(data)}，列: {list(data.columns)}")
+            
+        except Exception as e:
+            logger.error(f"currency_boc_sina调用失败: {symbol}, 错误: {str(e)}")
+            return False, f"currency_boc_sina调用失败: {str(e)}", None
         
         # 重命名列以符合标准格式
         column_mapping = {
@@ -524,6 +554,86 @@ class MacroDataWriter:
             logger.error(f"详细错误信息: {traceback.format_exc()}")
             return False, error_msg, None
     
+    def get_ak_gold_spot_data(self, asset_config: Dict, incremental: bool = True) -> Tuple[bool, str, Optional[pd.DataFrame]]:
+        """获取上海黄金交易所现货数据"""
+        try:
+            logger.info(f"开始获取ak_gold_spot数据: {asset_config['name']} ({asset_config['code']})")
+            
+            # 检查是否需要更新数据
+            latest_date, existing_count = self.get_existing_data_info(asset_config['name'], 'ak_gold_spot')
+            if incremental and latest_date:
+                data_type = asset_config.get('type', 'UNKNOWN')
+                if not should_update_data(data_type, latest_date, force_update=not incremental):
+                    latest_date_str = latest_date.date() if isinstance(latest_date, datetime.datetime) else latest_date
+                    logger.info(f"数据无需更新: {asset_config['name']} (上次更新: {latest_date_str})")
+                    return True, "数据无需更新", pd.DataFrame()
+            elif not incremental:
+                logger.info(f"全量模式: 强制更新 {asset_config['name']}")
+            
+            if incremental and latest_date:
+                latest_date_str = latest_date.date() if isinstance(latest_date, datetime.datetime) else latest_date
+                logger.info(f"增量模式: 已有{existing_count}条记录，最新日期{latest_date_str}")
+            else:
+                logger.info(f"{'全量模式' if not incremental else '首次获取'}: 获取上海金现货数据")
+            
+            # 使用akshare的spot_hist_sge函数获取上海黄金交易所历史数据
+            symbol = asset_config['code']  # Au99.99, Au100g, Au(T+D)等
+            
+            logger.info(f"正在调用spot_hist_sge(symbol='{symbol}')")
+            data = ak.spot_hist_sge(symbol=symbol)
+            
+            if data is None or data.empty:
+                return False, "无法获取数据或数据为空", None
+            
+            # 检查数据列名
+            logger.info(f"ak_gold_spot数据列名: {asset_config['name']}, 列: {list(data.columns)}")
+            
+            # spot_hist_sge返回的数据应该包含date列
+            if 'date' not in data.columns:
+                logger.error(f"ak_gold_spot未找到date列: {asset_config['name']}, 列名: {list(data.columns)}")
+                return False, "未找到date列", None
+            
+            # 如果是增量模式且有历史数据，过滤新数据
+            if incremental and latest_date:
+                try:
+                    data['date'] = pd.to_datetime(data['date'])
+                    latest_date_pd = pd.to_datetime(latest_date)
+                    
+                    # 增加日志，观察过滤前的数据
+                    logger.info(f"过滤前，从akshare获取的最新数据日期: {data['date'].max()}")
+                    logger.info(f"数据库中最新日期: {latest_date_pd}")
+
+                    # 规范化日期后再比较，避免时间部分影响
+                    data = data[data['date'].dt.normalize() > latest_date_pd.normalize()]
+                    
+                    if data.empty:
+                        logger.info(f"没有新数据需要更新: {asset_config['name']}")
+                        return True, "没有新数据", pd.DataFrame()
+                except Exception as date_error:
+                    logger.warning(f"日期过滤失败: {asset_config['name']}, 错误: {str(date_error)}")
+            elif not incremental:
+                # 全量模式：手动过滤最近3年的数据
+                try:
+                    data['date'] = pd.to_datetime(data['date'])
+                    end_date = datetime.datetime.now()
+                    start_date = end_date - relativedelta(years=DEFAULT_DATA_YEARS)
+                    data = data[data['date'] >= start_date]
+                    data = data[data['date'] <= end_date]
+                except Exception as date_error:
+                    logger.warning(f"日期过滤失败: {asset_config['name']}, 错误: {str(date_error)}, 使用全部数据")
+            
+            if data.empty:
+                return False, "过滤后数据为空", None
+            
+            logger.info(f"ak_gold_spot数据获取成功: {asset_config['name']}, 数据行数: {len(data)}")
+            return True, f"成功获取{len(data)}行数据", data
+            
+        except Exception as e:
+            error_msg = f"ak_gold_spot数据获取失败: {str(e)}"
+            logger.error(f"{asset_config['name']}: {error_msg}")
+            logger.error(f"详细错误信息: {traceback.format_exc()}")
+            return False, error_msg, None
+    
     def process_and_save_data(self, asset_config: Dict, data: pd.DataFrame, incremental: bool = True) -> Tuple[int, int]:
         """处理并保存数据到数据库"""
         new_count = 0
@@ -559,18 +669,38 @@ class MacroDataWriter:
                         if pd.isna(value):
                             data_dict[key] = None
                     
+                    # 获取价格数据，根据数据源优先使用对应的字段名
+                    # akshare数据源使用小写字段名，yfinance使用大写字段名
+                    if asset_config['source'].startswith('ak_'):
+                        # akshare数据源：优先使用小写字段名
+                        close_value = data_dict.get('close') or data_dict.get('Close') or data_dict.get('收盘价')
+                        open_value = data_dict.get('open') or data_dict.get('Open') or data_dict.get('开盘价')
+                        high_value = data_dict.get('high') or data_dict.get('High') or data_dict.get('最高价')
+                        low_value = data_dict.get('low') or data_dict.get('Low') or data_dict.get('最低价')
+                        volume_value = data_dict.get('volume') or data_dict.get('Volume') or data_dict.get('成交量')
+                    else:
+                        # yfinance等其他数据源：优先使用大写字段名
+                        close_value = data_dict.get('Close') or data_dict.get('close') or data_dict.get('收盘价')
+                        open_value = data_dict.get('Open') or data_dict.get('open') or data_dict.get('开盘价')
+                        high_value = data_dict.get('High') or data_dict.get('high') or data_dict.get('最高价')
+                        low_value = data_dict.get('Low') or data_dict.get('low') or data_dict.get('最低价')
+                        volume_value = data_dict.get('Volume') or data_dict.get('volume') or data_dict.get('成交量')
+                    
+                    # 调试日志
+                    logger.info(f"数据处理 {asset_config['name']} {data_date}: close={close_value}, open={open_value}")
+                    
                     # 插入数据
                     insert_data = {
                         'type_code': asset_config.get('type', 'UNKNOWN'),
                         'source': asset_config['source'],
                         'symbol': asset_config['name'],
                         'data_date': data_date,
-                        'value': data_dict.get('Close') or data_dict.get('close') or data_dict.get('收盘价'),
-                        'open_price': data_dict.get('Open') or data_dict.get('open') or data_dict.get('开盘价'),
-                        'high_price': data_dict.get('High') or data_dict.get('high') or data_dict.get('最高价'),
-                        'low_price': data_dict.get('Low') or data_dict.get('low') or data_dict.get('最低价'),
-                        'close_price': data_dict.get('Close') or data_dict.get('close') or data_dict.get('收盘价'),
-                        'volume': data_dict.get('Volume') or data_dict.get('volume') or data_dict.get('成交量'),
+                        'value': close_value,
+                        'open_price': open_value,
+                        'high_price': high_value,
+                        'low_price': low_value,
+                        'close_price': close_value,
+                        'volume': volume_value,
                         'additional_data': data_dict
                     }
                     
@@ -584,6 +714,56 @@ class MacroDataWriter:
                     if success:
                         new_count += 1
                     
+            elif '日期' in data.columns:
+                # 处理有'日期'列的宏观数据（如央行利率）
+                logger.info(f"处理包含'日期'列的宏观数据: {asset_config['name']}")
+                
+                for index, row in data.iterrows():
+                    # 获取日期
+                    date_value = row['日期']
+                    if pd.isna(date_value):
+                        continue
+                    
+                    # 转换为datetime对象
+                    data_date = pd.to_datetime(date_value).to_pydatetime()
+                    
+                    # 检查是否已存在
+                    if incremental and self.check_data_exists(asset_config['name'], asset_config['source'], data_date):
+                        continue  # 跳过已存在的数据
+                    
+                    # 获取数值（优先使用'今值'列）
+                    value = row.get('今值') or row.get('value') or row.get('数值')
+                    if pd.isna(value):
+                        value = None
+                    
+                    # 准备数据
+                    data_dict = row.to_dict()
+                    
+                    # 处理NaN值
+                    for key, val in data_dict.items():
+                        if pd.isna(val):
+                            data_dict[key] = None
+                    
+                    logger.info(f"处理央行利率数据 {asset_config['name']} {data_date}: value={value}")
+                    
+                    insert_data = {
+                        'type_code': asset_config.get('type', 'UNKNOWN'),
+                        'source': asset_config['source'],
+                        'symbol': asset_config['name'],
+                        'data_date': data_date,
+                        'value': value,
+                        'additional_data': data_dict
+                    }
+                    
+                    try:
+                        insert_macro_data(insert_data)
+                        success = True
+                    except Exception as e:
+                        logger.error(f"插入央行利率数据失败 {asset_config['name']}: {e}")
+                        success = False
+                    
+                    if success:
+                        new_count += 1
             else:
                 # 对于没有明确日期的宏观数据，使用当前时间
                 current_time = datetime.datetime.now()
@@ -651,6 +831,8 @@ class MacroDataWriter:
                 success, message, data = self.get_ak_forex_data(asset_config, incremental)
             elif asset_config['source'] == 'ak_macro':
                 success, message, data = self.get_ak_macro_data(asset_config, incremental)
+            elif asset_config['source'] == 'ak_gold_spot':
+                success, message, data = self.get_ak_gold_spot_data(asset_config, incremental)
             else:
                 success, message, data = False, f"不支持的数据源: {asset_config['source']}", None
             
